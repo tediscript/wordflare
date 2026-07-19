@@ -58,16 +58,30 @@ A WordPress-familiar author wants to run their own blog on Cloudflare's native s
 ## Implementation Decisions
 
 - **Platform.** One Cloudflare **Worker + Static Assets**, deployed via Wrangler / Workers Builds. Workers, not Pages (Static Assets is the recommended path; see ADR-0001).
+- **Language.** TypeScript end-to-end — the Worker, the editor island, the tests, and the build/generate scripts.
 - **Static generation.** Published posts are pre-rendered to static assets; **Publish triggers regeneration + redeploy** (ADR-0001, option A). Drafts and draft preview render on demand through the Worker, gated by auth. Reads of published posts bypass the Worker.
 - **Data.** **D1** is the source of truth for Posts and Users (ADR-0002). Index `slug`, `status`, `published_at`. KV is an optional read cache only (not the record); R2 is reserved for media (iteration 2).
 - **Content model.** A Post is Markdown with YAML frontmatter. Frontmatter: `title`, `slug`, `excerpt`, `tags[]`, `status` (`draft` | `published`), `published_at`, `updated_at`, `author`. Body is GFM Markdown. The exact frontmatter schema may be refined by the editor/content-model prototype.
 - **Markdown pipeline (pure).** Parse frontmatter → render body (GFM, code highlighting, footnotes) → resolve `[[wikilinks]]` to published-post permalinks (alias and `#heading` supported; unresolved links flagged) → extract tags. The specific renderer/editor library is chosen in the editor prototype (see Further Notes).
 - **Editor.** Obsidian-style: live-preview Markdown editing plus frontmatter editing, behind auth.
 - **Auth.** Single User (Administrator), username + password. Password stored as a salted **PBKDF2** hash via Web Crypto, with iterations tuned to fit the Free plan's 10 ms-CPU/invocation cap. Signed session cookie (HMAC). A **Roles & Capabilities** model (`edit_posts`, `publish_posts`, …) so more users/roles can be added later. _Caveat:_ if tuned-PBKDF2 proves too weak, robust hashing pushes the project to Workers Paid ($5/mo) — flagged, not decided.
+- **First admin account.** Seeded at deploy via a command / env var (a pre-hashed password), not a first-run setup page.
 - **Permalinks.** Configurable structure; default flat `/<slug>/`. Posts index at `/`; pagination at `/page/<n>/`.
 - **Public serving.** Static HTML generated at build time, served as assets (Worker not invoked on hit). `404` via generated asset / `not_found_handling`.
 - **Admin API.** The Worker serves `/admin/*` (login, dashboard, editor CRUD, publish, draft preview), all behind the session check.
-- **Packaging.** Template/seed repo + `wrangler deploy`; D1 binding; secrets via `wrangler secret`. Optional "Deploy to Cloudflare" button for one-click fork-and-deploy.
+- **Admin front-end.** Server-rendered HTML from the Worker, with the editor mounted as a JS island (no SPA build).
+- **Styling.** Tailwind CSS for both the admin and the public theme.
+- **Packaging.** Template/seed repo + `wrangler deploy`; D1 binding; secrets via `wrangler secret`. Optional “Deploy to Cloudflare” button for one-click fork-and-deploy.
+- **Repo shape.** Single app for iteration 1; “reusable” is delivered via the template repo, not a monorepo split.
+
+## Local development
+
+- **Run locally with `wrangler dev`** — it runs the real runtime (workerd) via Miniflare on `localhost:8787`, serving the Worker **and** the Static Assets directory.
+- **Local data.** D1, KV, and R2 are simulated by Miniflare. Apply migrations with `wrangler d1 migrations apply <db> --local` (the default in dev); state lives under `.wrangler/state/`.
+- **Local secrets.** A `.dev.vars` file (session secret, password pepper); production secrets use `wrangler secret`.
+- **On-publish-redeploy, locally.** A **generate script** (read D1 → write rendered HTML into the `assets/` directory) stands in for deploy-time regeneration; run it before/alongside `wrangler dev`.
+- **No Cloudflare login needed for local dev.** Only deploying (and creating the remote D1) requires `wrangler login` or a `CLOUDFLARE_API_TOKEN`.
+- **Tests** run under `@cloudflare/vitest-pool-workers` with fresh in-memory bindings per test (see Testing Decisions).
 
 ## Testing Decisions
 
@@ -82,7 +96,7 @@ For iteration 1: media library and Featured Image; tag-archive pages (tags are s
 
 ## Further Notes
 
-- **The editor is the core — prototype it first.** The first implement ticket should be an editor/render-library spike (e.g. evaluate CodeMirror / Milkdown / TipTap-Markdown / bytemd against live preview, frontmatter, wikilinks) to lock the library before the admin app is built. Its output may refine the frontmatter schema above.
+- **Ticket order — walking skeleton first.** Ticket 1 stands up the runnable spine (scaffold via `create-cloudflare`, D1 binding + `posts`/`users` migration, `.dev.vars`, `wrangler dev` serving a page, one passing `vitest-pool-workers` test). Ticket 2 is the editor/render-library spike (evaluate CodeMirror / Milkdown / TipTap-Markdown / bytemd against live preview, frontmatter, wikilinks) to lock the library before the admin app is built; its output may refine the frontmatter schema above.
 - **Free-tier watch-items** (from the research): index every filtered D1 column or "rows read" burns the quota; never use KV as a write store (1,000 writes/day); watch password-hashing CPU against the Free 10 ms cap.
 - **Deploy-on-publish** means a Workers Build per publish — design the publish/regenerate pipeline and deploy hook early.
 - Artifacts produced alongside this spec: `CONTEXT.md`, `docs/adr/0001`, `docs/adr/0002`, `docs/research/cloudflare-stack-for-blog-engine.md`.
