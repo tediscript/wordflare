@@ -78,12 +78,12 @@ The labels are stable. What changes with trust is _which gates still have a huma
 
 ### Claim atomicity (when auto-trigger is on)
 
-Once auto-trigger is on, several agents may race for the same queue item. The **label flip is the compare-and-swap (CAS)** — the single write that turns a claim attempt into an exclusive claim:
+Once auto-trigger is on, several agents may race for the same queue item. The **label flip is the (logical) compare-and-swap (CAS)** — the write that turns a claim attempt into an exclusive claim:
 
 1. **Read** — the item sits in a `ready-for-*` queue, and (for implement) the assignee is the resuming implementer / (for audit) it is unclaimed by the pool.
-2. **CAS** — atomically flip `ready-for-* → in-*`. Exactly one writer wins; GitHub's single-label-space update serializes it.
+2. **Flip** — remove the `ready-for-*` label and add the matching `in-*` label.
 3. **Record** — the **assignee** field records _who_ claimed it (implement) / the audit session records itself (audit).
-4. **Re-check** — immediately re-read the labels. The **loser** sees the flip already happened and **bails**; the winner is whichever flip stuck.
+4. **Re-check (the actual guard)** — immediately re-read the labels. GitHub does **not** make a remove+add atomic, so two agents can both think they flipped. The **re-check** is what makes it a real CAS: whichever flip is no longer visible **lost** and **bails**; the winner is the one whose `in-*` label stuck.
 
 Humans don't need CAS — they assign by hand.
 
