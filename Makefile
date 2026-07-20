@@ -5,7 +5,7 @@
 DB ?= wordflare
 PORT ?= 8787
 
-.PHONY: help install setup migrate dev test typecheck health db clean distclean deploy
+.PHONY: help install setup migrate dev stop test typecheck health db clean distclean deploy
 
 help: ## List these targets
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage: make <target>\n\nTargets:\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -25,6 +25,13 @@ migrate: ## Apply D1 migrations locally (wrangler d1 migrations apply --local)
 
 dev: ## Start the local dev server (wrangler dev) on :8787
 	npm run dev
+
+stop: ## Stop this project's dev server (wrangler dev + workerd) if the port is stuck
+	@-kill $$(pgrep -f "$(CURDIR)/node_modules/wrangler/wrangler-dist/cli.js") 2>/dev/null || true
+	@-kill $$(pgrep -f "$(CURDIR)/node_modules/@cloudflare/workerd") 2>/dev/null || true
+	@sleep 1
+	@-kill -9 $$(pgrep -f "$(CURDIR)/node_modules/@cloudflare/workerd") 2>/dev/null || true
+	@echo "Any local dev server for this project has been stopped."
 
 test: ## Run the test suite (@cloudflare/vitest-pool-workers)
 	npm test

@@ -100,6 +100,7 @@ Then open:
 | `migrate` | `wrangler d1 migrations apply wordflare --local` | apply migrations |
 | `db Q="…"` | `wrangler d1 execute wordflare --local --command "…"` | run SQL on local D1 |
 | `health` | `curl /__health` | probe the running dev server |
+| `stop` | kill this project's `wrangler dev` + `workerd` | free `:8787` if `make dev` says the port is in use |
 | `clean` | `rm -rf .wrangler` | wipe local D1 state (re-run `make migrate`) |
 
 Notes:
