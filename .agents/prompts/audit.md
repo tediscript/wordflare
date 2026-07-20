@@ -1,5 +1,5 @@
 ---
-description: Independent audit — claim the issue, review its PR with the code-review skill, post findings, flip the label.
+description: Independent audit — claim the issue, delegate its PR review to the code-review skill, triage findings, post the verdict, flip the label.
 argument-hint: "<#issue>"
 ---
 You are running the **independent audit** of the maker-checker loop
@@ -7,6 +7,13 @@ You are running the **independent audit** of the maker-checker loop
 this run owns the issue's workflow-state label.
 
 Issue: **$1** (e.g. `2` or `#2`). Strip a leading `#`.
+
+> This prompt owns the **state mechanics** only (claim, checkout PR, triage
+> findings into fix-in-PR vs deferred, post the verdict to the PR, flip the
+> terminal label). The **review** is delegated to the **code-review** skill —
+> `.agents/skills/code-review/SKILL.md` — with fixed point `main`. This is the
+> *independent* audit run; `/implement`'s own code-review pass is the internal
+> self-review.
 
 ## 1. Claim
 - Current labels: `gh issue view $1 --json labels --jq '[.labels[].name]'`.
@@ -21,9 +28,9 @@ Issue: **$1** (e.g. `2` or `#2`). Strip a leading `#`.
   head is `feat/$1-*` (or references #$1); then `gh pr checkout <PR-NUMBER>`.
 
 ## 2. Review (delegate to the skill)
-- Load and follow the **code-review** skill: `.agents/skills/code-review/SKILL.md`.
-- Fixed point: `main`. Diff: `git diff main...HEAD` (three-dot).
-- Produce the report under `## Standards` and `## Spec`.
+- Load and follow the **code-review** skill: `.agents/skills/code-review/SKILL.md`,
+  passing **fixed point `main`** (the skill captures `git diff main...HEAD`
+  three-dot itself, and emits the `## Standards` / `## Spec` reports).
 
 ## 3. Triage findings (this split is what lets the loop terminate)
 Sort every finding into:
