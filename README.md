@@ -22,7 +22,7 @@ flowchart TD
   D --> E["/implement a ticket (fresh session)"]
   E --> F["/code-review — Standards + Spec"]
   F --> G["open a PR"]
-  G --> H{"You review<br/>& merge?"}
+  G --> H{"You review<br/>and merge?"}
   H -->|changes| E
   H -->|merge| I["squash-merge → main → Cloudflare deploys"]
   I --> J{"More tickets?"}
@@ -36,24 +36,24 @@ flowchart TD
 sequenceDiagram
   autonumber
   participant You
-  participant Agent as Agent (fresh session)
+  participant Agent as Agent fresh session
   participant GH as GitHub
   participant CF as Cloudflare
 
-  You->>You: git switch main && git pull --ff-only
+  You->>You: git switch main then git pull --ff-only
   You->>You: git switch -c feat/2-walking-skeleton
-  You->>Agent: /implement #2
-  Agent->>Agent: read AGENTS.md, ticket #2, spec #1, ADRs
-  Agent->>Agent: build TDD (red then green)
+  You->>Agent: /implement ticket 2
+  Agent->>Agent: read AGENTS.md, ticket 2, spec 1, ADRs
+  Agent->>Agent: build TDD, red then green
   Agent->>Agent: /code-review
-  Agent->>GH: push branch + open PR
-  GH-->>You: PR ready (+ preview URL)
+  Agent->>GH: push branch and open PR
+  GH-->>You: PR ready, preview URL
   You->>You: review the PR
-  You->>GH: squash-merge (self-merge OK)
+  You->>GH: squash-merge, self-merge OK
   GH->>GH: branch-protection check passes
   GH->>CF: main advances
   CF->>CF: Workers Builds deploys main
-  You->>You: git switch main && pull; pick next ticket
+  You->>You: git switch main, pull, pick next ticket
 ```
 
 ---
