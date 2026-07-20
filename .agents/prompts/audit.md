@@ -41,7 +41,12 @@ recorded but never block.
   `## Spec`, and a `## Verdict` block listing fix-in-PR vs deferred.
 - Set the issue's terminal label:
   - **No fix-in-PR items (clean):**
+    `gh pr ready <PR-NUMBER>`
+    # Un-draft the PR. `ready-for-merge` must mean the PR is actually
+    # mergeable — a draft PR can't be merged, so the label is a lie until the
+    # PR is marked ready for review. This is the loop's terminator.
     `gh issue edit $1 --remove-label in-audit --add-label ready-for-merge`
   - **Any fix-in-PR items:**
     `gh issue edit $1 --remove-label in-audit --add-label ready-for-agent`
-- State the verdict and the new label to the user.
+- State the verdict and the new label to the user, and (on a clean audit)
+  that the PR is now ready for review (un-drafted).
