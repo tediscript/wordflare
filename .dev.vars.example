@@ -1,0 +1,8 @@
+# ── Local development secrets ────────────────────────────────────────────────
+# Copy this file to `.dev.vars` (gitignored) and fill in real values.
+# `.dev.vars` is read by `wrangler dev`; production uses `wrangler secret put`.
+# Generate a strong value, e.g.: openssl rand -hex 32
+
+# Signs session cookies (HMAC). Auth lands in a later ticket; the walking
+# skeleton only checks that a value is present (see GET /__health).
+SESSION_SECRET=change-me-to-a-long-random-string

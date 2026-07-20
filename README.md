@@ -107,12 +107,34 @@ The label flow that tracks this loop (`in-implement` → `ready-for-audit` → `
 
 ## Local development
 
-> The runnable stack is set up by ticket [#2 (walking skeleton)](https://github.com/tediscript/wordflare/issues/2). Once it lands, local dev is:
+The runnable stack lives in this repo. The quickest path (see the `Makefile` for the full list — `make` prints it):
 
-- `wrangler dev` — runs the Worker **and** Static Assets on `localhost:8787` (no Cloudflare login needed for local dev).
-- `wrangler d1 migrations apply <db> --local` — apply DB migrations locally (state lives in `.wrangler/`).
-- `.dev.vars` — local secrets (session secret, password pepper). **Never commit** — it's in `.gitignore`.
-- `npm test` — the suite, via `@cloudflare/vitest-pool-workers` with fresh in-memory bindings per test.
+```sh
+make setup   # install deps, create .dev.vars, apply local D1 migrations
+make dev     # wrangler dev on http://127.0.0.1:8787
+```
+
+Then open:
+- http://127.0.0.1:8787/ — the placeholder homepage (a Static Asset; the Worker isn't invoked).
+- http://127.0.0.1:8787/__health — the walking-skeleton probe: `{"db":"ok","posts":N,"session_secret_set":true}` (HTTP `503` when the D1 probe fails).
+
+`make` is a thin wrapper over the real commands:
+
+| `make …` | runs | |
+|---|---|---|
+| `setup` | `npm install` + `.dev.vars` + migrations | first-time bootstrap |
+| `dev` | `wrangler dev` | Worker + Static Assets on `:8787` |
+| `test` | `npm test` | `@cloudflare/vitest-pool-workers` suite |
+| `typecheck` | `tsc --noEmit` | type-check |
+| `migrate` | `wrangler d1 migrations apply wordflare --local` | apply migrations |
+| `db Q="…"` | `wrangler d1 execute wordflare --local --command "…"` | run SQL on local D1 |
+| `health` | `curl /__health` | probe the running dev server |
+| `stop` | kill this project's `wrangler dev` + `workerd` | free `:8787` if `make dev` says the port is in use |
+| `clean` | `rm -rf .wrangler` | wipe local D1 state (re-run `make migrate`) |
+
+Notes:
+- `.dev.vars` — local secrets (session secret, password pepper). **Never commit** — it's in `.gitignore`. `make setup` copies `.dev.vars.example` only if `.dev.vars` is absent.
+- No Cloudflare login is needed for local dev; only deploying (and creating the remote D1) requires `wrangler login`.
 
 ---
 
