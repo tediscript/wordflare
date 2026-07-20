@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "wordflare",
+  "main": "src/worker.ts",
+  "compatibility_date": "2025-07-01",
+  "assets": {
+    "directory": "./public"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "wordflare",
+      // Placeholder for local dev. Before first deploy, run
+      // `wrangler d1 create wordflare` and replace this with the returned id.
+      // Local dev (`wrangler dev`, `--local` migrations) needs no Cloudflare login.
+      "database_id": "1fe323a5-e924-4c8a-a2b6-f35eecbef99d",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}

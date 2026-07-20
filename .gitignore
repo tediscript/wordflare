@@ -14,6 +14,8 @@ dist/
 .dev.vars.*
 .env
 .env.*
+# …but DO commit the checked-in example template.
+!.dev.vars.example
 
 # Logs
 *.log
