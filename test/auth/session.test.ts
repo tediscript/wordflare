@@ -27,10 +27,14 @@ describe("session cookie", () => {
   it("rejects a tampered signature", async () => {
     const value = await createSession(USER, SECRET);
     const [payload, signature] = value.split(".");
-    const last = signature.slice(-1);
-    const flipped = signature.slice(0, -1) + (last === "A" ? "B" : "A");
+    // Mutate the tail (>=2 chars) so a fully-significant byte always differs.
+    // A 256-bit HMAC base64url-encodes to 43 chars; the last char holds only
+    // 4 significant bits + 2 zero padding bits, so flipping just one trailing
+    // char can change only padding bits — leaving the decoded signature
+    // identical and verify() returning true (the original flake).
+    const tampered = signature.slice(0, -2) + (signature.endsWith("AA") ? "BB" : "AA");
     await expect(
-      verifySession(`${payload}.${flipped}`, SECRET),
+      verifySession(`${payload}.${tampered}`, SECRET),
     ).resolves.toBeNull();
   });
 
