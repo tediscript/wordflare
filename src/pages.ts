@@ -31,8 +31,8 @@ function shell(title: string, body: string): string {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(title)} — Wordflare</title>
 <style>
-  :root { color-scheme: light dark; }
-  body { font: 14px/1.5 system-ui, sans-serif; max-width: 28rem; margin: 4rem auto; padding: 0 1rem; color: #111; }
+  :root { color-scheme: light; }
+  body { font: 14px/1.5 system-ui, sans-serif; max-width: 28rem; margin: 4rem auto; padding: 0 1rem; background: #fff; color: #111; }
   h1 { font-size: 1.4rem; margin-bottom: 0; }
   h2 { font-size: 1rem; font-weight: 600; margin: 1.5rem 0 0.5rem; }
   label { display: block; margin: 0.75rem 0 0.15rem; }
