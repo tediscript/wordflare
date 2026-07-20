@@ -1,5 +1,5 @@
 ---
-description: Implement a ticket — claim it, set up or resume its branch, build test-first via the tdd skill, self-review, push a draft PR, queue for audit.
+description: Implement a ticket — claim it, set up or resume its branch, delegate the build to the implement skill (tdd + self-review), push a draft PR, queue for audit.
 argument-hint: "<#issue>"
 ---
 You are running **`/implement`** — the implement leg of the maker-checker loop
@@ -8,9 +8,13 @@ This run owns the issue's workflow-state label and its branch.
 
 Issue: **$1** (e.g. `2` or `#2`). Strip a leading `#`.
 
-> No `implement` skill exists. The build is the **tdd** skill; the close-out
-> self-review is the **code-review** skill in self-review mode (no labels, no PR
-> comment). This prompt is the choreography around them — same seam as `/audit`.
+> This prompt owns the **state mechanics** only (claim, branch, draft PR, label
+> flips, audit handoff). The **build** is delegated to the **implement** skill —
+> `.agents/skills/implement/SKILL.md` — which drives tdd at pre-agreed seams and
+> the close-out self-review (`/code-review`). That skill is hidden from
+> auto-discovery (`disable-model-invocation: true`), so step 3 loads it explicitly
+> by path. Same seam as `/audit`: `/audit` runs the *independent* code-review on
+> the PR; the implement skill's code-review is the *internal* self-review.
 
 ## 1. Claim (guard first, then flip)
 - Clean tree required: `git status --short` must be empty. If it isn't, STOP and
@@ -34,18 +38,21 @@ Issue: **$1** (e.g. `2` or `#2`). Strip a leading `#`.
     you'll open the draft PR in step 4.
   - **Exists -> resume:** `git switch feat/$1-<slug>` and pull.
 
-## 3. Implement (build via tdd, then self-review)
+## 3. Implement (delegate the build to the implement skill)
 - Load context: `AGENTS.md`, ticket $1 (`gh issue view $1`), spec #1, `docs/adr/`.
 - **Resume?** If the branch already saw an audit, first read the PR's latest
   `/code-review` comment and apply its **fix-in-PR** items (the maker-checker
   handoff) before any new work.
-- **Build test-first:** load and follow the **tdd** skill —
-  `.agents/skills/tdd/SKILL.md` (red-green-refactor).
-- **Self-review:** load and follow the **code-review** skill —
-  `.agents/skills/code-review/SKILL.md`, fixed point `main` (`git diff main...HEAD`).
-  This is the **internal self-review**: produce the Standards/Spec report and fix
-  what's actionable, but do **not** flip labels or post a PR comment — that's
-  `/audit`'s job.
+- **Delegate the build:** load and follow the **implement** skill by reading
+  `.agents/skills/implement/SKILL.md` explicitly (it is hidden from
+  auto-discovery, so it will NOT appear in the available-skills list — load it by
+  path). The skill owns: tdd at pre-agreed seams, regular typechecking, the full
+  test suite, and the close-out `/code-review`. Do not re-drive tdd or code-review
+  from this prompt — that is the skill's job.
+- **Self-review scope constraint:** the skill's `/code-review` pass is the
+  **internal self-review** only — fixed point `main` (`git diff main...HEAD`),
+  produce the Standards/Spec report and fix what's actionable, but do **not** flip
+  labels or post a PR comment; that's `/audit`'s job.
 
 ## 4. Finish — queue for audit
 - Push the branch; ensure a **draft** PR is open referencing #$1 in the body so it
