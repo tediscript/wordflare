@@ -1,0 +1,113 @@
+# Wordflare
+
+A reusable, single-tenant blog engine on Cloudflare's native stack — **TypeScript**, **Workers + Static Assets**, **D1**, an Obsidian-style Markdown editor, and static HTML generated on publish.
+
+> This README is the **how-to-work-here** guide. For *what* we're building, see the [spec (#1)](https://github.com/tediscript/wordflare/issues/1) and [`CONTEXT.md`](CONTEXT.md). For *why*, see the [ADRs](docs/adr/).
+
+**TL;DR — to work on a ticket:** branch → `/implement #N` → review & merge the PR. `main` is protected; nothing lands except a squash-merged pull request.
+
+---
+
+## How work flows here
+
+We work ticket-by-ticket, each on its own branch, merged by pull request. Two views:
+
+### 1. The big picture — idea to ship
+
+```mermaid
+flowchart TD
+  A["An idea"] --> B["/grill-with-docs — sharpen it"]
+  B --> C["/to-spec  →  spec issue #1"]
+  C --> D["/to-tickets  →  tickets #2–#7"]
+  D --> E["/implement a ticket (fresh session)"]
+  E --> F["/code-review — Standards + Spec"]
+  F --> G["open a PR"]
+  G --> H{"You review<br/>& merge?"}
+  H -->|changes| E
+  H -->|merge| I["squash-merge → main → Cloudflare deploys"]
+  I --> J{"More tickets?"}
+  J -->|yes| E
+  J -->|no| K["Iteration shipped"]
+```
+
+### 2. One ticket — who does what
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant You
+  participant Agent as Agent (fresh session)
+  participant GH as GitHub
+  participant CF as Cloudflare
+
+  You->>You: git switch main && git pull --ff-only
+  You->>You: git switch -c feat/2-walking-skeleton
+  You->>Agent: /implement #2
+  Agent->>Agent: read AGENTS.md, ticket #2, spec #1, ADRs
+  Agent->>Agent: build TDD (red then green)
+  Agent->>Agent: /code-review
+  Agent->>GH: push branch + open PR
+  GH-->>You: PR ready (+ preview URL)
+  You->>You: review the PR
+  You->>GH: squash-merge (self-merge OK)
+  GH->>GH: branch-protection check passes
+  GH->>CF: main advances
+  CF->>CF: Workers Builds deploys main
+  You->>You: git switch main && pull; pick next ticket
+```
+
+---
+
+## Working a ticket (the loop)
+
+1. **Sync + branch** (you do this first — `/implement` commits to the *current* branch, so the branch must exist before it runs):
+   ```
+   git switch main && git pull --ff-only
+   git switch -c feat/<ticket>-<slug>      # e.g. feat/2-walking-skeleton
+   ```
+2. **Fresh session → implement:** open a new session and run `/implement #<ticket>`. The agent reads `AGENTS.md` + the ticket, builds test-first (red-green), runs `/code-review`, then pushes the branch and opens a PR.
+3. **Review + merge** (you): check the PR, then squash-merge — self-merge is allowed:
+   ```
+   gh pr merge --squash --delete-branch
+   ```
+4. **Sync + next:** `git switch main && git pull --ff-only`, then pick the next frontier ticket (the board shows blocking edges).
+
+**Branch naming:** `feat/<ticket>-<slug>`, or `fix/`, `chore/`, `docs/` for non-ticket work. `main` is branch-protected — direct pushes are rejected, even for the owner. See [ADR-0003](docs/adr/0003-github-flow-pr-based-workflow.md).
+
+---
+
+## Local development
+
+> The runnable stack is set up by ticket [#2 (walking skeleton)](https://github.com/tediscript/wordflare/issues/2). Once it lands, local dev is:
+
+- `wrangler dev` — runs the Worker **and** Static Assets on `localhost:8787` (no Cloudflare login needed for local dev).
+- `wrangler d1 migrations apply <db> --local` — apply DB migrations locally (state lives in `.wrangler/`).
+- `.dev.vars` — local secrets (session secret, password pepper). **Never commit** — it's in `.gitignore`.
+- `npm test` — the suite, via `@cloudflare/vitest-pool-workers` with fresh in-memory bindings per test.
+
+---
+
+## Deploying
+
+- `main` is deployed to production by **Cloudflare Workers Builds**; every PR/branch gets a preview URL.
+- **One-time, before the first deploy:** `wrangler login` (interactive OAuth) and create the remote D1 database.
+- After [#2](https://github.com/tediscript/wordflare/issues/2) merges, enable "require status checks" on `main` so CI gates every PR (see ADR-0003).
+
+---
+
+## Where things live
+
+- [`CONTEXT.md`](CONTEXT.md) — domain glossary (Post, frontmatter, wikilink, Post Status, Roles & Capabilities…)
+- [`docs/adr/`](docs/adr/) — architecture decisions
+  - [0001 — Static generation via redeploy-on-publish](docs/adr/0001-static-generation-via-redeploy-on-publish.md)
+  - [0002 — D1 is the source of truth](docs/adr/0002-d1-is-the-source-of-truth.md)
+  - [0003 — GitHub Flow: PR-based workflow](docs/adr/0003-github-flow-pr-based-workflow.md)
+- [`docs/specs/`](docs/specs/) — the iteration-1 spec (mirrors issue #1)
+- [`docs/research/`](docs/research/) — the Cloudflare-stack research
+- [Issues](https://github.com/tediscript/wordflare/issues) — the ticket board (spec #1, tickets #2–#7)
+
+---
+
+## Status
+
+**Iteration 1 — planning complete, implementation not started.** Frontier ticket: **[#2 — Walking skeleton](https://github.com/tediscript/wordflare/issues/2)**.
