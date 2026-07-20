@@ -87,7 +87,7 @@ The build uses **maker-checker**. Two different reviews — named, so they stop 
    git switch main && git pull --ff-only
    git switch -c feat/<ticket>-<slug>      # e.g. feat/2-walking-skeleton
    ```
-2. **Session A — implement + self-review:** open a new session and run `/implement #<ticket>`. The agent reads `AGENTS.md` + the ticket, builds test-first (red-green), runs its built-in **self-review** (`/code-review` internally), then pushes the branch and opens a **draft** PR.
+2. **Session A — implement + self-review:** open a new session and run `/implement #<ticket>`. The agent reads `AGENTS.md` + the ticket, builds test-first (red-green), runs its built-in **self-review** (`/code-review` internally), then pushes the branch and opens a **draft** PR whose body opens with `Closes #<ticket>` — that closing keyword (not a bare `#<ticket>`) is what links the PR in the issue's Development panel and auto-closes the issue on squash-merge.
 3. **Session B — independent audit:** in a *fresh* session, run `/code-review` on the PR. It audits the diff with no shared context and posts findings to a **PR comment**, split into *fix-in-PR* vs *deferred*.
 4. **Session C — resume:** `/implement #<ticket> --resume` reads that PR comment and applies the *fix-in-PR* items. Loop **B ↔ C** until a fresh audit comes back clean.
 5. **Clean audit → ready for merge:** un-draft the PR (mark "ready for review"); the issue moves to `ready-for-merge`.
