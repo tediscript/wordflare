@@ -26,6 +26,13 @@ Issue: **$1** (e.g. `2` or `#2`). Strip a leading `#`.
 - Find the issue's open PR and check it out so the diff is non-empty:
   `gh pr list --state open --json number,headRefName,title` → pick the one whose
   head is `feat/$1-*` (or references #$1); then `gh pr checkout <PR-NUMBER>`.
+- Verify the PR will **link + close the issue on merge**: its body must open with
+  a closing keyword (`Closes #$1`, or `fix/fixes`/`resolve/resolves` variants).
+  A bare `#$1` does **not** link (issue #4 hit exactly this gap — its PR said
+  `Implements #4`, which is not a closing keyword, so nothing linked). If the
+  keyword is missing, record it as a **fix-in-PR** item in section 3: the issue
+  won't auto-close on merge otherwise. Check with
+  `gh pr view <PR-NUMBER> --json body --jq .body`.
 
 ## 2. Review (delegate to the skill)
 - Load and follow the **code-review** skill: `.agents/skills/code-review/SKILL.md`,

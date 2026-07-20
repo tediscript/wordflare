@@ -16,10 +16,10 @@ Single-context — one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/ag
 
 GitHub Flow. `main` is protected and always deployable; **never push directly to `main`**. Every change (including every agent `/implement` run) starts on a short-lived branch and lands via a pull request:
 
-- Branch from `main`: `feat/<ticket>-<slug>` (or `fix/`, `chore/`, `docs/`). The ticket number auto-links the branch/PR to its issue.
+- Branch from `main`: `feat/<ticket>-<slug>` (or `fix/`, `chore/`, `docs/`). The ticket number in the branch name does **not** auto-link the PR to its issue — a **closing keyword** (`Closes #<ticket>`) in the PR body is what links it (and closes it on merge); a bare `#<ticket>` does not.
 - **Maker-checker, two reviews** (named, so they don't read as a contradiction): `/implement` runs its built-in **self-review** (`/code-review`, internal) *before* pushing, then opens a **draft** PR; a *separate, fresh* session runs the **independent audit** (`/code-review` on the PR) and posts findings to a PR comment; `/implement #N --resume` reads that comment and applies the *fix-in-PR* items. Loop until a clean audit. See `README.md` "Working a ticket (the loop)".
 - **Termination:** clean audit → un-draft the PR ("ready for review") → a **human** reviews + squash-merges. (Auto-merge is the last trust gate to open.)
-- Squash-merge, then delete the branch. Reference the ticket in the PR title/body so it auto-links.
+- Squash-merge, then delete the branch. The PR's closing keyword (`Closes #<ticket>`) is what auto-links the issue and closes it on merge — keep that line intact through the squash.
 - `main` is branch-protected: a PR is required (admins included); direct pushes are rejected; self-merge is allowed for solo work.
 - Cloudflare Workers Builds deploys `main` to production; each PR/branch gets a preview URL.
 - CI status checks become required once the test suite exists (ticket #2). See ADR-0003.

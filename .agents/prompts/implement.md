@@ -55,8 +55,12 @@ Issue: **$1** (e.g. `2` or `#2`). Strip a leading `#`.
   labels or post a PR comment; that's `/audit`'s job.
 
 ## 4. Finish — queue for audit
-- Push the branch; ensure a **draft** PR is open referencing #$1 in the body so it
-  auto-links (`gh pr create --draft ...`). Push early for recoverability.
+- Push the branch; ensure a **draft** PR is open whose body opens with a
+  **closing keyword** — `Closes #$1` — so it links in the issue's Development
+  panel and closes the ticket on merge (`gh pr create --draft ...`). A bare
+  `#$1` mention does **not** link: only `close/closes/closed`,
+  `fix/fixes/fixed`, or `resolve/resolves/resolved` followed by `#$1` does.
+  Push early for recoverability.
 - Flip the issue to the audit queue:
   `gh issue edit $1 --remove-label in-implement --add-label ready-for-audit`
 - Report what was built, the draft PR URL, and the new label.
