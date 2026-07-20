@@ -5,7 +5,7 @@
 DB ?= wordflare
 PORT ?= 8787
 
-.PHONY: help install setup migrate dev stop test typecheck health db clean distclean deploy
+.PHONY: help install setup migrate dev stop test typecheck health hash-password db clean distclean deploy
 
 help: ## List these targets
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage: make <target>\n\nTargets:\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -38,6 +38,9 @@ test: ## Run the test suite (@cloudflare/vitest-pool-workers)
 
 typecheck: ## Type-check the project (tsc --noEmit)
 	npm run typecheck
+
+hash-password: ## Generate ADMIN_PASSWORD_* values (set PASSWORD_PEPPER first). ITERATIONS=100000
+	@node scripts/hash-password.mjs $${ITERATIONS:-100000}
 
 health: ## Probe the running dev server's /__health
 	@curl -fsS "http://127.0.0.1:$(PORT)/__health"; echo

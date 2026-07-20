@@ -1,8 +1,21 @@
 # ── Local development secrets ────────────────────────────────────────────────
 # Copy this file to `.dev.vars` (gitignored) and fill in real values.
 # `.dev.vars` is read by `wrangler dev`; production uses `wrangler secret put`.
-# Generate a strong value, e.g.: openssl rand -hex 32
+# Generate strong secrets, e.g.: openssl rand -hex 32
 
-# Signs session cookies (HMAC). Auth lands in a later ticket; the walking
-# skeleton only checks that a value is present (see GET /__health).
+# Signs session cookies (HMAC-SHA256). Auth: ticket #4.
 SESSION_SECRET=change-me-to-a-long-random-string
+
+# Password pepper — mixed into every password hash (ADR-0004). A DB-only leak
+# cannot be cracked without it. Losing it invalidates all stored hashes.
+PASSWORD_PEPPER=change-me-to-another-long-random-string
+
+# ── Seeded Administrator (pre-hashed; ticket #4) ─────────────────────────────
+# Generate with: PASSWORD_PEPPER=<pepper> node scripts/hash-password.mjs [iterations]
+# (default iterations 100000; tune to the Free ~10ms-CPU cap — see ADR-0004).
+# The Worker inserts this Administrator lazily if none exists; it never
+# overwrites an existing row. To rotate, delete the row and re-deploy.
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD_HASH=
+ADMIN_PASSWORD_SALT=
+ADMIN_PASSWORD_ITERATIONS=100000
