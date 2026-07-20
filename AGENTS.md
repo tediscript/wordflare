@@ -17,7 +17,8 @@ Single-context — one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/ag
 GitHub Flow. `main` is protected and always deployable; **never push directly to `main`**. Every change (including every agent `/implement` run) starts on a short-lived branch and lands via a pull request:
 
 - Branch from `main`: `feat/<ticket>-<slug>` (or `fix/`, `chore/`, `docs/`). The ticket number auto-links the branch/PR to its issue.
-- Open a PR against `main`; run `/code-review` on it.
+- **Maker-checker, two reviews** (named, so they don't read as a contradiction): `/implement` runs its built-in **self-review** (`/code-review`, internal) *before* pushing, then opens a **draft** PR; a *separate, fresh* session runs the **independent audit** (`/code-review` on the PR) and posts findings to a PR comment; `/implement #N --resume` reads that comment and applies the *fix-in-PR* items. Loop until a clean audit. See `README.md` "Working a ticket (the loop)".
+- **Termination:** clean audit → un-draft the PR ("ready for review") → a **human** reviews + squash-merges. (Auto-merge is the last trust gate to open.)
 - Squash-merge, then delete the branch. Reference the ticket in the PR title/body so it auto-links.
 - `main` is branch-protected: a PR is required (admins included); direct pushes are rejected; self-merge is allowed for solo work.
 - Cloudflare Workers Builds deploys `main` to production; each PR/branch gets a preview URL.
@@ -32,8 +33,8 @@ GitHub Flow. `main` is protected and always deployable; **never push directly to
 3. **Clean baseline:** `git switch main && git pull --ff-only`. Abort if it is not a fast-forward.
 4. **Branch decision:**
    - **Does not exist** → create it from `main`, then proceed.
-   - **Exists** → **triage** first (open PR? tests green or red? commits? acceptance criteria met?):
-     - **Healthy / recoverable** → **resume** (check it out, pull, continue). Non-destructive — just say so.
+   - **Exists** → **triage** first — open PR? tests green or red? commits? acceptance criteria met? **any `/code-review` audit findings on the PR?**:
+     - **Healthy / recoverable** → **resume**: check it out, pull, and **read the PR's `/code-review` comments** — apply the *fix-in-PR* items from the latest audit (the maker-checker handoff; see `README.md` "Working a ticket"). Non-destructive — just say so.
      - **Broken / unclear** → **do not auto-resume** (inherits a mess) and **do not auto-discard** (lossy). Report the state and ask.
 5. **Flags override the triage:** `/implement #N --resume` forces resume; `/implement #N --restart` wipes the branch (closes any open PR — kept as a record — deletes the branch, starts fresh from `main`) without asking.
 6. **Draft PR early:** push and open a *draft* PR on the first commit, so an interrupted run leaves recoverable state on GitHub.
