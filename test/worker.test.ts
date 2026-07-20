@@ -53,4 +53,18 @@ describe("walking skeleton", () => {
     // The row written through the binding is observable through the Worker.
     expect(after.posts).toBe(before.posts + 1);
   });
+
+  it("returns 503 when the D1 probe fails at GET /__health", async () => {
+    // Break the probe: drop the table it reads so SELECT COUNT(*) throws.
+    // Placed last; per-test storage isolation keeps the other tests unaffected.
+    await env.DB.prepare("DROP TABLE posts").run();
+
+    const res = await SELF.fetch("http://localhost/__health");
+
+    expect(res.status).toBe(503);
+    const body = (await res.json()) as HealthResponse;
+    expect(body.db).toBe("error");
+    // The probe still ran and reported detail; the status code carries the verdict.
+    expect(body.status).toBe("ok");
+  });
 });

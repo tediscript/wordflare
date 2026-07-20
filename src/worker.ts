@@ -56,5 +56,7 @@ async function handleHealth(env: Env): Promise<Response> {
     typeof env.SESSION_SECRET === "string" && env.SESSION_SECRET.length > 0;
 
   const body: HealthResponse = { status: "ok", db, posts, configured };
-  return Response.json(body);
+  // The HTTP status reflects DB health: 503 when the probe failed, so an
+  // HTTP-level monitor isn't misled by a 200 that reports trouble only in body.
+  return Response.json(body, { status: db === "ok" ? 200 : 503 });
 }
