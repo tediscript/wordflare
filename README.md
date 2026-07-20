@@ -19,12 +19,16 @@ flowchart TD
   A["An idea"] --> B["/grill-with-docs — sharpen it"]
   B --> C["/to-spec  →  spec issue #1"]
   C --> D["/to-tickets  →  tickets #2–#7"]
-  D --> E["/implement a ticket (fresh session)"]
-  E --> F["/code-review — Standards + Spec"]
-  F --> G["open a PR"]
-  G --> H{"You review<br/>and merge?"}
-  H -->|changes| E
-  H -->|merge| I["squash-merge → main → Cloudflare deploys"]
+  D --> E["/implement (fresh session):<br/>TDD + self-review"]
+  E --> F["open a DRAFT PR"]
+  F --> G["/code-review (fresh session)<br/>— independent audit"]
+  G --> H{"Audit clean?"}
+  H -->|findings| R["/implement --resume:<br/>apply fix-in-PR from PR comment"]
+  R --> G
+  H -->|clean| M["un-draft PR → ready-for-merge"]
+  M --> Y{"You review<br/>and merge?"}
+  Y -->|changes| R
+  Y -->|merge| I["squash-merge → main<br/>→ Cloudflare deploys"]
   I --> J{"More tickets?"}
   J -->|yes| E
   J -->|no| K["Iteration shipped"]
@@ -36,18 +40,31 @@ flowchart TD
 sequenceDiagram
   autonumber
   participant You
-  participant Agent as Agent fresh session
+  participant A as Agent A — implement (fresh session)
+  participant B as Agent B — audit (fresh session)
   participant GH as GitHub
   participant CF as Cloudflare
 
   You->>You: git switch main then git pull --ff-only
   You->>You: git switch -c feat/2-walking-skeleton
-  You->>Agent: /implement ticket 2
-  Agent->>Agent: read AGENTS.md, ticket 2, spec 1, ADRs
-  Agent->>Agent: build TDD, red then green
-  Agent->>Agent: /code-review
-  Agent->>GH: push branch and open PR
-  GH-->>You: PR ready, preview URL
+  You->>A: /implement ticket 2
+  A->>A: read AGENTS.md, ticket 2, spec 1, ADRs
+  A->>A: build TDD, red then green
+  A->>A: self-review (/code-review, internal)
+  A->>GH: push branch, open DRAFT PR
+  GH-->>You: draft PR + preview URL
+  loop audit ↔ resume until clean
+    You->>B: /code-review (fresh session, on the PR)
+    B->>GH: post audit findings to PR comment (fix-in-PR vs deferred)
+    GH-->>You: audit comment posted
+    alt findings (not clean)
+      You->>A: /implement ticket 2 --resume
+      A->>A: read PR comment, apply fix-in-PR items, push
+    end
+  end
+  B->>B: clean audit
+  A->>GH: un-draft PR (ready for review)
+  GH-->>You: PR ready for review · issue ready-for-merge
   You->>You: review the PR
   You->>GH: squash-merge, self-merge OK
   GH->>GH: branch-protection check passes
@@ -60,17 +77,29 @@ sequenceDiagram
 
 ## Working a ticket (the loop)
 
+The build uses **maker-checker**. Two different reviews — named, so they stop reading like a contradiction:
+
+- **Self-review** — `/code-review` run *internally* by `/implement` as a close-out, **before** the PR exists. Same session as the build, so it can rationalize its own work.
+- **Independent audit** — `/code-review` run in a *fresh session* on the open PR, **after** implement. No shared context with the builder; posts findings to a **PR comment**. This is the one with teeth.
+
 1. **Sync + branch** (you do this first — `/implement` commits to the *current* branch, so the branch must exist before it runs):
    ```
    git switch main && git pull --ff-only
    git switch -c feat/<ticket>-<slug>      # e.g. feat/2-walking-skeleton
    ```
-2. **Fresh session → implement:** open a new session and run `/implement #<ticket>`. The agent reads `AGENTS.md` + the ticket, builds test-first (red-green), runs `/code-review`, then pushes the branch and opens a PR.
-3. **Review + merge** (you): check the PR, then squash-merge — self-merge is allowed:
+2. **Session A — implement + self-review:** open a new session and run `/implement #<ticket>`. The agent reads `AGENTS.md` + the ticket, builds test-first (red-green), runs its built-in **self-review** (`/code-review` internally), then pushes the branch and opens a **draft** PR.
+3. **Session B — independent audit:** in a *fresh* session, run `/code-review` on the PR. It audits the diff with no shared context and posts findings to a **PR comment**, split into *fix-in-PR* vs *deferred*.
+4. **Session C — resume:** `/implement #<ticket> --resume` reads that PR comment and applies the *fix-in-PR* items. Loop **B ↔ C** until a fresh audit comes back clean.
+5. **Clean audit → ready for merge:** un-draft the PR (mark "ready for review"); the issue moves to `ready-for-merge`.
+6. **Review + merge** (you): check the PR, then squash-merge — self-merge is allowed:
    ```
    gh pr merge --squash --delete-branch
    ```
-4. **Sync + next:** `git switch main && git pull --ff-only`, then pick the next frontier ticket (the board shows blocking edges).
+7. **Sync + next:** `git switch main && git pull --ff-only`, then pick the next frontier ticket (the board shows blocking edges).
+
+The **PR comment is the handoff artifact** between sessions B and C — that's what makes the audit resumable across fresh contexts.
+
+The label flow that tracks this loop (`in-implement` → `ready-for-audit` → `in-audit` → `ready-for-merge`) is defined in [`docs/agents/triage-labels.md`](docs/agents/triage-labels.md).
 
 **Branch naming:** `feat/<ticket>-<slug>`, or `fix/`, `chore/`, `docs/` for non-ticket work. `main` is branch-protected — direct pushes are rejected, even for the owner. See [ADR-0003](docs/adr/0003-github-flow-pr-based-workflow.md).
 
