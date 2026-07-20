@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.output/
+.cache/
+
+# Cloudflare / Wrangler local state and caches
+.wrangler/
+
+# Local secrets — NEVER commit (contains session secret, password pepper)
+.dev.vars
+.dev.vars.*
+.env
+.env.*
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Test / coverage
+coverage/
