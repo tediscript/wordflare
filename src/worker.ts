@@ -28,10 +28,10 @@ export default {
 
 /** Body of `GET /__health` — the walking-skeleton status probe. */
 export type HealthResponse = {
-  status: "ok";
   db: "ok" | "error";
   posts: number;
-  configured: boolean;
+  /** True when `SESSION_SECRET` is set (`.dev.vars` in dev, secret in prod). */
+  session_secret_set: boolean;
 };
 
 /**
@@ -52,10 +52,10 @@ async function handleHealth(env: Env): Promise<Response> {
     db = "error";
   }
 
-  const configured =
+  const session_secret_set =
     typeof env.SESSION_SECRET === "string" && env.SESSION_SECRET.length > 0;
 
-  const body: HealthResponse = { status: "ok", db, posts, configured };
+  const body: HealthResponse = { db, posts, session_secret_set };
   // The HTTP status reflects DB health: 503 when the probe failed, so an
   // HTTP-level monitor isn't misled by a 200 that reports trouble only in body.
   return Response.json(body, { status: db === "ok" ? 200 : 503 });

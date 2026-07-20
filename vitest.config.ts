@@ -15,6 +15,11 @@ export default defineWorkersConfig(async () => {
       poolOptions: {
         workers: {
           singleWorker: true,
+          // Set explicitly (it's the framework default) so a destructive test
+          // like the /__health 503 case stays order-independent — it must not
+          // silently break if someone toggles this later (e.g. for Workflows,
+          // which require isolatedStorage: false).
+          isolatedStorage: true,
           // Drive the real Worker (and its D1/Static-Assets bindings) under
           // Miniflare, reading the same wrangler.jsonc that `wrangler dev` uses.
           wrangler: { configPath: "./wrangler.jsonc" },

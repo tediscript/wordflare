@@ -116,7 +116,7 @@ make dev     # wrangler dev on http://127.0.0.1:8787
 
 Then open:
 - http://127.0.0.1:8787/ — the placeholder homepage (a Static Asset; the Worker isn't invoked).
-- http://127.0.0.1:8787/__health — the walking-skeleton probe: `{"status":"ok","db":"ok","posts":N,"configured":true}`.
+- http://127.0.0.1:8787/__health — the walking-skeleton probe: `{"db":"ok","posts":N,"session_secret_set":true}` (HTTP `503` when the D1 probe fails).
 
 `make` is a thin wrapper over the real commands:
 

@@ -25,6 +25,21 @@ describe("walking skeleton", () => {
     expect(await res.text()).toContain("Wordflare");
   });
 
+  it("returns 503 when the D1 probe fails at GET /__health", async () => {
+    // Break the probe for THIS test only: drop the table it reads so
+    // SELECT COUNT(*) throws. `isolatedStorage: true` gives each test a fresh
+    // post-setup DB snapshot, so this is self-contained and order-independent —
+    // no reliance on running last.
+    await env.DB.prepare("DROP TABLE posts").run();
+
+    const res = await SELF.fetch("http://localhost/__health");
+
+    expect(res.status).toBe(503);
+    const body = (await res.json()) as HealthResponse;
+    expect(body.db).toBe("error");
+    // The probe still ran and reported detail; the status code carries the verdict.
+  });
+
   it("drives the D1 binding through the Worker at GET /__health", async () => {
     const before = await getHealth();
 
@@ -47,24 +62,9 @@ describe("walking skeleton", () => {
 
     const after = await getHealth();
 
-    expect(after.status).toBe("ok");
     expect(after.db).toBe("ok");
-    expect(after.configured).toBe(true);
+    expect(after.session_secret_set).toBe(true);
     // The row written through the binding is observable through the Worker.
     expect(after.posts).toBe(before.posts + 1);
-  });
-
-  it("returns 503 when the D1 probe fails at GET /__health", async () => {
-    // Break the probe: drop the table it reads so SELECT COUNT(*) throws.
-    // Placed last; per-test storage isolation keeps the other tests unaffected.
-    await env.DB.prepare("DROP TABLE posts").run();
-
-    const res = await SELF.fetch("http://localhost/__health");
-
-    expect(res.status).toBe(503);
-    const body = (await res.json()) as HealthResponse;
-    expect(body.db).toBe("error");
-    // The probe still ran and reported detail; the status code carries the verdict.
-    expect(body.status).toBe("ok");
   });
 });
