@@ -1,0 +1,116 @@
+<!doctype html>
+<!--
+  ⚠️  THROWAWAY SPIKE — ticket #3 (Editor/render-library spike).
+  Proves bytemd mounts as a JS island in server-rendered HTML (no SPA build),
+  with live preview, frontmatter, and Obsidian-style [[wikilinks]].
+  This file is disposable: the decision is kept (docs/adr/0005), the demo is not.
+  Run:  cd spike/editor-bytemd && python3 -m http.server 8080   ->   http://localhost:8080/
+  (A local server is required: ES module `import` is blocked on file://)
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>bytemd island spike — Wordflare</title>
+<!-- bytemd's own styles + a code-highlight theme, straight off the CDN -->
+<link rel="stylesheet" href="https://esm.sh/bytemd@1.22.0/dist/index.css">
+<link rel="stylesheet" href="https://esm.sh/highlight.js@11.9.0/styles/github.css">
+<style>
+  body { font: 14px/1.5 system-ui, sans-serif; margin: 0; background: #f6f7f9; color: #111; }
+  header { padding: 1rem 1.5rem; background: #111; color: #fff; }
+  header small { color: #9aa; }
+  main { max-width: 56rem; margin: 1.5rem auto; padding: 0 1rem; }
+  /* The editor island fills the viewport; bytemd needs an explicit height. */
+  .bytemd { height: calc(100vh - 140px); border-radius: 6px; }
+</style>
+</head>
+<body>
+<header>
+  <strong>Wordflare — editor spike</strong>
+  <small>bytemd mounted as a JS island · live preview · frontmatter · [[wikilinks]]</small>
+</header>
+
+<main>
+  <!-- The mount point the island hydrates. The worker would server-render
+       this shell and the <script type="module"> below; the editor is the island. -->
+  <div id="editor"></div>
+</main>
+
+<script type="module">
+  // 1) Load bytemd + plugins from the CDN as ESM. No bundler, no SPA framework.
+  import { Editor } from 'https://esm.sh/bytemd@1.22.0';
+  import gfm from 'https://esm.sh/@bytemd/plugin-gfm@1.22.0';
+  import frontmatter from 'https://esm.sh/@bytemd/plugin-frontmatter@1.22.0';
+  import highlight from 'https://esm.sh/@bytemd/plugin-highlight@1.22.0';
+  import remarkWikiLink from 'https://esm.sh/remark-wiki-link@2.0.1';
+
+  // 2) Author a tiny bytemd plugin that wires [[wikilinks]] through remark.
+  //    This is exactly how US #12 (`[[like this]]`) and US #13 (flag dead
+  //    links) will be delivered in the real admin — bytemd exposes the remark
+  //    processor via `remark: (p) => p.use(...)`.
+  function wikilinkPlugin({ permalinks = [] } = {}) {
+    return {
+      remark: (processor) =>
+        processor.use(remarkWikiLink, {
+          permalinks,                 // known slugs -> rendered as <a href="/slug/">
+          aliasDivider: '|',          // [[slug|Display text]]
+          pageResolver: (name) => [name.toLowerCase().replace(/\s+/g, '-')],
+          hrefTemplate: (permalink) => `/${permalink}/`,
+        }),
+    };
+  }
+
+  // 3) Seed content that exercises every acceptance criterion in one preview.
+  const seed = `---
+title: Hello Wordflare
+slug: hello-wordflare
+tags: [intro, spike]
+status: draft
+---
+
+# Hello, Wordflare
+
+Live preview renders as you type — GFM **bold**, *italics*, a task list:
+
+- [x] Evaluate editor libraries
+- [ ] Wire up wikilinks
+
+| Library   | Island-mount | Live preview |
+|-----------|:------------:|:------------:|
+| bytemd    | yes          | built-in     |
+
+\`\`\`ts
+// fenced code with syntax highlighting
+function greet(name: string): string {
+  return \`Hello, \${name}!\`;
+}
+\`\`\`
+
+Cross-reference another post with an Obsidian wikilink: [[hello-wordflare]].
+And a dead one (not yet published): [[drafts-ticket-notes]].
+`;
+
+  // 4) Mount the editor as a JS island onto the server-rendered #editor node.
+  //    `new Editor({ target, props })` is the vanilla-JS mount — bytemd compiles
+  //    to plain DOM manipulation, no UI-framework runtime in the bundle.
+  const editor = new Editor({
+    target: document.getElementById('editor'),
+    props: {
+      value: seed,
+      mode: 'split',                 // live preview side-by-side (the AC)
+      plugins: [
+        frontmatter(),               // AC: YAML frontmatter in the preview
+        gfm(),                       // AC: GFM tables / tasklists / strikethrough
+        highlight(),                 // AC: fenced code syntax highlighting
+        wikilinkPlugin({             // AC: [[wikilinks]]; known slugs below
+          permalinks: ['hello-wordflare'],
+        }),
+      ],
+    },
+  });
+
+  // Svelte-component mount API: reflect edits back into the value prop.
+  editor.$on('change', (e) => editor.$set({ value: e.detail.value }));
+</script>
+</body>
+</html>
